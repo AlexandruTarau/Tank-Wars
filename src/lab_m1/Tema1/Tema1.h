@@ -34,13 +34,19 @@ namespace m1
         float TerrainFunc(float x);
         void UpdateTank(Tank& tank, float deltaTime);
         glm::vec3 ProjectileFunc(glm::vec3 velocity, glm::vec3 gravity, glm::vec3 position, float t);
+        void FindIntersection(glm::vec3 velocity, glm::vec3 gravity, glm::vec3 position, float startTime, float endTime, float stepTime, float startX, float endX, float stepX);
 
     protected:
         glm::mat3 modelMatrix;
 
         // My vars:
         std::vector<std::tuple<float, float>> heightMap;
-        float xMax, yMax, step;
+        float maxVisibleX, maxVisibleY, step;
+        float maxMapX;
+        int visibleChunksNumber;
+        int firstChunkIndex;
+        int lastChunkIndex;
+        int excessChunksNumber;
 
         std::vector<Projectile> projectiles;
         std::vector<Projectile> projectilesPool;
@@ -49,8 +55,11 @@ namespace m1
         float maxHeightDistance;
         float transferValue;
 
-        Tank tank1, tank2;
+        Tank tank1;
+        Enemy tank2;
 
         float healthBarHeight, healthBarWidth;
+
+        glm::vec3 cameraPosition;
     };
 }   // namespace m1

@@ -18,9 +18,14 @@ using namespace m1;
 
 Tema1::Tema1()
 {
-    xMax = 28.f;
-    yMax = 12.f;
+    maxVisibleX = 28.f;
+    maxVisibleY = 12.f;
     step = 0.05f;
+    maxMapX = maxVisibleX * 4;
+    visibleChunksNumber = maxVisibleX / step;
+    firstChunkIndex = 0;
+    lastChunkIndex = maxMapX / step - 1;
+    excessChunksNumber = 40;
 
     gravity = glm::vec3(0.f, 1000.f, 0.f);
     maxHeightDistance = 3.f;
@@ -28,6 +33,8 @@ Tema1::Tema1()
 
     healthBarHeight = 20.f;
     healthBarWidth = 60.f;
+
+    cameraPosition = glm::vec3(0, 0, 50);
 }
 
 
@@ -69,7 +76,7 @@ void Tema1::UpdateTank(Tank& tank, float deltaTime)
         // Health Bar
         glm::mat3 modelMatrix = glm::mat3(1);
         glm::vec3 tankPos = tank.GetPosition();
-        float tankHeight = tank.GetHeight();
+        float tankHeight = Tank::height;
 
         modelMatrix *= transform2D::Translate(tankPos.x - healthBarWidth / 2.f, tankPos.y + 3.f * tankHeight);
         modelMatrix *= transform2D::Scale(healthBarWidth, healthBarHeight);
@@ -93,12 +100,36 @@ void Tema1::UpdateTank(Tank& tank, float deltaTime)
 
         vector<glm::vec3> trajectoryPoints;
 
-        for (int i = 0; i < 300; i++) {
+        glm::ivec2 resolution = window->GetResolution();
+        float scaleY = (float)resolution.y / maxVisibleY;
+        float scaleX = (float)resolution.x / maxVisibleX;
+
+        for (float i = 0.f; i < maxVisibleX; i += step) {
+
             // Calculate the new position at time t
-            glm::vec3 newPosition = ProjectileFunc(initialVelocity, gravity, initialPosition, i / 100.f);
+            glm::vec3 newPosition = ProjectileFunc(initialVelocity, gravity, initialPosition, i / 10);
+            
+            // Check if the projectile intersects with the terrain
+            float ax, ay;
+            bool found = false;
+
+            for (int j = 0; j < heightMap.size(); j++) {
+                ax = std::get<0>(heightMap[j]);
+                ay = std::get<1>(heightMap[j]);
+                if ((ax - newPosition.x) * (ax - newPosition.x) + (ay - newPosition.y) * (ay - newPosition.y) < 25.f) {
+                    tank.SetIntersection(newPosition);
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                break;
+            }
 
             // Stop if the projectile would go below the ground level
-            if (newPosition.y < 0) break;
+            if (newPosition.y < 0) {
+                break;
+            }
 
             // Store the new point in the trajectory
             trajectoryPoints.push_back(newPosition);
@@ -129,15 +160,15 @@ void Tema1::Init()
     glm::ivec2 resolution = window->GetResolution();
     auto camera = GetSceneCamera();
     camera->SetOrthographic(0, (float)resolution.x, 0, (float)resolution.y, 0.01f, 400);
-    camera->SetPosition(glm::vec3(0, 0, 50));
+    camera->SetPosition(cameraPosition);
     camera->SetRotation(glm::vec3(0, 0, 0));
     camera->Update();
     GetCameraInput()->SetActive(false);
 
     // Initiate Terrain
-    float pointScaleX = (float)resolution.x / xMax;
-    float pointScaleY = (float)resolution.y / yMax;
-    for (float x = 0.f; x <= xMax; x += step) {
+    float pointScaleX = (float)resolution.x / maxVisibleX;
+    float pointScaleY = (float)resolution.y / maxVisibleY;
+    for (float x = 0.f; x <= maxMapX; x += step) {
         heightMap.push_back({x * pointScaleX, TerrainFunc(x) * pointScaleY});
     }
 
@@ -146,15 +177,14 @@ void Tema1::Init()
     float posX = std::get<0>(heightMap[chunkIndex]);
     tank1 = Tank(glm::vec3(posX, 0.f, 0.f), chunkIndex, 90.f, 60.f, 100);
 
-    chunkIndex = (int)((xMax - 1) / step);
+    chunkIndex = (int)((maxVisibleX - 1) / step);
     posX = std::get<0>(heightMap[chunkIndex]);
-    tank2 = Tank(glm::vec3(posX, 0.f, 0.f), chunkIndex, 90.f, 60.f, 100);
-    //tank2 = Enemy(glm::vec3(posX, 0.f, 0.f), chunkIndex, 90.f, 60.f, 100);
+    tank2 = Enemy(glm::vec3(posX, 0.f, 0.f), chunkIndex, 90.f, 60.f, 100, 300, 1.f);
 
     glm::vec3 corner = glm::vec3(0, 0, 0);
     float squareSide = 1;
     
-    Mesh* terrain = object2D::CreateSquare("terrain", corner, squareSide, glm::vec3(0.059, 0.529, 0.075), true);
+    Mesh* terrain = object2D::CreateSquare("terrain", corner, squareSide, glm::vec3(0.059, 0.529, 0.075), false);
     Mesh* cannon = object2D::CreateSquare("cannon", corner, squareSide, glm::vec3(0.11, 0.122, 0.11), true);
     Mesh* tank1 = object2D::CreateTank("tank1", corner, Tank::width, Tank::height, Tank::radius, glm::vec3(0.31, 0.188, 0.039), glm::vec3(0.871, 0.208, 0.075), true);
     Mesh* tank2 = object2D::CreateTank("tank2", corner, Tank::width, Tank::height, Tank::radius, glm::vec3(0.31, 0.188, 0.039), glm::vec3(0.071, 0.184, 0.922), true);
@@ -191,7 +221,7 @@ void Tema1::Update(float deltaTimeSeconds)
     float ax = 0.f, bx = 0.f, ay = 0.f, by = 0.f, t = 0.f;
 
     // Land slide
-    for (int i = 0; i < heightMap.size() - 1; i++) {
+    for (int i = max(0, firstChunkIndex - excessChunksNumber); i < min(visibleChunksNumber + firstChunkIndex + excessChunksNumber, lastChunkIndex) - 1; i++) {
         ax = std::get<0>(heightMap[i]);
         bx = std::get<0>(heightMap[i + 1]);
         ay = std::get<1>(heightMap[i]);
@@ -216,7 +246,7 @@ void Tema1::Update(float deltaTimeSeconds)
     }
 
     // Building the map
-    for (int i = 0; i < heightMap.size() - 1; i++) {
+    for (int i = max(0, firstChunkIndex - excessChunksNumber); i < min(visibleChunksNumber + firstChunkIndex + excessChunksNumber, lastChunkIndex) - 1; i++) {
         modelMatrix = glm::mat3(1);
         ax = std::get<0>(heightMap[i]);
         bx = std::get<0>(heightMap[i + 1]);
@@ -230,6 +260,8 @@ void Tema1::Update(float deltaTimeSeconds)
         RenderMesh2D(meshes["terrain"], shaders["VertexColor"], modelMatrix);
     }
 
+    tank2.UpdateAI(tank1.GetPosition(), heightMap, visibleChunksNumber, firstChunkIndex, gravity, projectiles, projectilesPool, deltaTimeSeconds);
+
     UpdateTank(tank1, deltaTimeSeconds);
     UpdateTank(tank2, deltaTimeSeconds);
 
@@ -240,7 +272,7 @@ void Tema1::Update(float deltaTimeSeconds)
         RenderMesh2D(meshes["circle"], shaders["VertexColor"], it->BuildProjectile(heightMap));
 
         // Projectile movement
-        if (it->Update(heightMap, tank1, tank2, projectiles, projectilesPool, gravity, window->GetResolution(), deltaTimeSeconds)) {
+        if (it->Update(heightMap, visibleChunksNumber, firstChunkIndex, lastChunkIndex, excessChunksNumber, tank1, tank2, projectiles, projectilesPool, gravity, window->GetResolution(), deltaTimeSeconds)) {
 
             // Remove projectile and add it to the pool
             projectilesPool.push_back(*it);
@@ -268,9 +300,14 @@ void Tema1::OnInputUpdate(float deltaTime, int mods)
     // Tank1
     if (window->KeyHold(GLFW_KEY_D)) {
         glm::vec3 position = tank1.GetPosition();
-        float newPosX = position.x + tank1.GetSpeed() * deltaTime;
+        glm::ivec2 resolution = window->GetResolution();
+        int currentChunk = tank1.GetChunkIndex();
+        float newPosX = position.x + Tank::speed * deltaTime;
+        int i = currentChunk + 1;
+        float firstChunkPosX = std::get<0>(heightMap[firstChunkIndex]);
+        float lastChunkPosX = std::get<0>(heightMap[lastChunkIndex]);
 
-        if (newPosX > window->GetResolution().x) {
+        if (newPosX > lastChunkPosX - excessChunksNumber) {
             return;
         }
 
@@ -278,16 +315,31 @@ void Tema1::OnInputUpdate(float deltaTime, int mods)
 
         // TODO: try bsearch later
         // Update the chunk the tank is on
-        for (int i = tank1.GetChunkIndex() + 1; i < heightMap.size(); i++) {
+        for (; i < visibleChunksNumber + firstChunkIndex; i++) {
             if (std::get<0>(heightMap[i]) > newPosX) {
                 tank1.SetChunkIndex(i - 1);
                 break;
             }
         }
+
+        if (newPosX > resolution.x / 2.f + firstChunkPosX && newPosX < lastChunkPosX - resolution.x / 2.f) {
+            int chunkMoveNumber = i - 1 - currentChunk;
+
+            firstChunkIndex += chunkMoveNumber;
+            firstChunkPosX = std::get<0>(heightMap[firstChunkIndex]);
+
+            glm::vec3 targetPos = glm::vec3(firstChunkPosX, 0, 50);
+            glm::vec3 difference = targetPos - cameraPosition;
+
+            // Damping camera movement
+            cameraPosition += difference * 0.04f;
+
+            GetSceneCamera()->SetPosition(cameraPosition);
+        }
     }
     if (window->KeyHold(GLFW_KEY_A)) {
         glm::vec3 position = tank1.GetPosition();
-        float newPosX = position.x - tank1.GetSpeed() * deltaTime;
+        float newPosX = position.x - Tank::speed * deltaTime;
 
         if (newPosX < 0) {
             return;
@@ -297,7 +349,7 @@ void Tema1::OnInputUpdate(float deltaTime, int mods)
         
         // TODO: try bsearch later
         // Update the chunk the tank is on
-        for (int i = tank1.GetChunkIndex(); i >= 0; i--) {
+        for (int i = tank1.GetChunkIndex(); i >= firstChunkIndex; i--) {
             if (std::get<0>(heightMap[i]) <= newPosX) {
                 tank1.SetChunkIndex(i);
                 break;
@@ -312,49 +364,51 @@ void Tema1::OnInputUpdate(float deltaTime, int mods)
     }
 
     // Tank2
-    if (window->KeyHold(GLFW_KEY_RIGHT)) {
-        glm::vec3 position = tank2.GetPosition();
-        float newPosX = position.x + tank2.GetSpeed() * deltaTime;
+    if (!tank2.IsActive()) {
+        if (window->KeyHold(GLFW_KEY_RIGHT)) {
+            glm::vec3 position = tank2.GetPosition();
+            float newPosX = position.x + Tank::speed * deltaTime;
 
-        if (newPosX > window->GetResolution().x) {
-            return;
-        }
+            if (newPosX > window->GetResolution().x) {
+                return;
+            }
 
-        tank2.SetPosition(glm::vec3(newPosX, position.y, position.z));
+            tank2.SetPosition(glm::vec3(newPosX, position.y, position.z));
 
-        // TODO: try bsearch later
-        // Update the chunk the tank is on
-        for (int i = tank2.GetChunkIndex() + 1; i < heightMap.size(); i++) {
-            if (std::get<0>(heightMap[i]) > newPosX) {
-                tank2.SetChunkIndex(i - 1);
-                break;
+            // TODO: try bsearch later
+            // Update the chunk the tank is on
+            for (int i = tank2.GetChunkIndex() + 1; i < visibleChunksNumber + firstChunkIndex; i++) {
+                if (std::get<0>(heightMap[i]) > newPosX) {
+                    tank2.SetChunkIndex(i - 1);
+                    break;
+                }
             }
         }
-    }
-    if (window->KeyHold(GLFW_KEY_LEFT)) {
-        glm::vec3 position = tank2.GetPosition();
-        float newPosX = position.x - tank2.GetSpeed() * deltaTime;
+        if (window->KeyHold(GLFW_KEY_LEFT)) {
+            glm::vec3 position = tank2.GetPosition();
+            float newPosX = position.x - Tank::speed * deltaTime;
 
-        if (newPosX < 0) {
-            newPosX = 0;
-        }
+            if (newPosX < 0) {
+                newPosX = 0;
+            }
 
-        tank2.SetPosition(glm::vec3(newPosX, position.y, position.z));
+            tank2.SetPosition(glm::vec3(newPosX, position.y, position.z));
 
-        // TODO: try bsearch later
-        // Update the chunk the tank is on
-        for (int i = tank2.GetChunkIndex(); i >= 0; i--) {
-            if (std::get<0>(heightMap[i]) <= newPosX) {
-                tank2.SetChunkIndex(i);
-                break;
+            // TODO: try bsearch later
+            // Update the chunk the tank is on
+            for (int i = tank2.GetChunkIndex(); i >= firstChunkIndex; i--) {
+                if (std::get<0>(heightMap[i]) <= newPosX) {
+                    tank2.SetChunkIndex(i);
+                    break;
+                }
             }
         }
-    }
-    if (window->KeyHold(GLFW_KEY_UP)) {
-        tank2.UpdateCannonAngle(false, deltaTime);
-    }
-    if (window->KeyHold(GLFW_KEY_DOWN)) {
-        tank2.UpdateCannonAngle(true, deltaTime);
+        if (window->KeyHold(GLFW_KEY_UP)) {
+            tank2.UpdateCannonAngle(false, deltaTime);
+        }
+        if (window->KeyHold(GLFW_KEY_DOWN)) {
+            tank2.UpdateCannonAngle(true, deltaTime);
+        }
     }
 }
 
@@ -365,8 +419,11 @@ void Tema1::OnKeyPress(int key, int mods)
     if (key == GLFW_KEY_SPACE) {
         tank1.FireProjectile(Projectile::projectileSpeed, gravity, projectiles, projectilesPool);
     }
-    if (key == GLFW_KEY_ENTER) {
+    if (key == GLFW_KEY_ENTER && !tank2.IsActive()) {
         tank2.FireProjectile(Projectile::projectileSpeed, gravity, projectiles, projectilesPool);
+    }
+    if (key == GLFW_KEY_I) {
+        tank2.SetStatus(!tank2.IsActive());
     }
 }
 

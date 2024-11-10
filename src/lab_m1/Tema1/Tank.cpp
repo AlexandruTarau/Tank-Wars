@@ -12,9 +12,13 @@ Tank::Tank(glm::vec3 position, int chunkIndex, float cannonAngle, float cannonAn
     this->maxHealth = maxHealth;
     this->currentHealth = maxHealth;
     this->isDead = false;
+    intersection = glm::vec3(0, 0, 0);
 }
 
-Tank::Tank() {}
+Tank::Tank()
+{
+    intersection = glm::vec3(0, 0, 0);
+}
 
 std::tuple<glm::mat3, glm::mat3> Tank::BuildTank(std::vector<std::tuple<float, float>> heightMap)
 {
@@ -29,6 +33,7 @@ std::tuple<glm::mat3, glm::mat3> Tank::BuildTank(std::vector<std::tuple<float, f
     std::tuple<glm::mat3, glm::mat3> tank;
 
     position.y = ay + t * (by - ay);
+    angle = groundAngle * 180.f / glm::pi<float>();
 
     // Tank base
     glm::mat3 modelMatrix = glm::mat3(1);
@@ -81,22 +86,24 @@ void Tank::FireProjectile(float projectileSpeed, glm::vec3 gravity,
     }
 }
 
-void Tank::UpdateCannonAngle(bool left, float deltaTime)
+bool Tank::UpdateCannonAngle(bool left, float deltaTime)
 {
+    float newAngle;
     if (left) {
-        float newAngle = cannonAngle - cannonAngleStep * deltaTime;
-        if (newAngle < -180) {
-            newAngle = 180;
+        newAngle = cannonAngle - cannonAngleStep * deltaTime;
+        if (newAngle < angle) {
+            return false;
         }
-        cannonAngle = newAngle;
     }
     else {
-        float newAngle = cannonAngle + cannonAngleStep * deltaTime;
-        if (newAngle > 180) {
-            newAngle = -180;
+        newAngle = cannonAngle + cannonAngleStep * deltaTime;
+        if (newAngle > angle + 180) {
+            return false;
         }
-        cannonAngle = newAngle;
     }
+    cannonAngle = newAngle;
+
+    return true;
 }
 
 void Tank::TakeDamage(int damage)
@@ -112,19 +119,14 @@ bool Tank::IsDead()
     return isDead;
 }
 
-float Tank::GetHeight()
-{
-    return height;
-}
-
 glm::vec3& Tank::GetPosition()
 {
 	return position;
 }
 
-float Tank::GetSpeed()
+float Tank::GetAngle()
 {
-    return speed;
+    return angle;
 }
 
 int Tank::GetChunkIndex()
@@ -152,6 +154,11 @@ glm::vec3 Tank::GetCannonOffset()
     return cannonOffset;
 }
 
+glm::vec3 Tank::GetIntersection()
+{
+    return intersection;
+}
+
 void Tank::SetCannonAngle(float cannonAngle)
 {
     this->cannonAngle = cannonAngle;
@@ -165,4 +172,9 @@ void Tank::SetChunkIndex(int chunkIndex)
 void Tank::SetPosition(glm::vec3 position)
 {
 	this->position = position;
+}
+
+void Tank::SetIntersection(glm::vec3 intersection)
+{
+    this->intersection = intersection;
 }

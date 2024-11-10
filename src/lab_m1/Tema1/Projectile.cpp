@@ -19,6 +19,10 @@ glm::mat3 Projectile::BuildProjectile(std::vector<std::tuple<float, float>> heig
 
 bool Projectile::Update(
 	std::vector<std::tuple<float, float>>& heightMap,
+	int visibleChunksNumber,
+	int firstChunkIndex,
+	int lastChunkIndex,
+	int excessChunksNumber,
 	Tank& tank1,
 	Tank& tank2,
 	std::vector<Projectile>& projectiles,
@@ -28,11 +32,13 @@ bool Projectile::Update(
 	float deltaTime)
 {
 	float ax = 0.f, ay = 0.f, bx = 0.f, by = 0.f, t = 0.f;
+	float firstChunkPosX = std::get<0>(heightMap[firstChunkIndex]);
+	float lastChunkPosX = firstChunkPosX + resolution.x;
 
 	position += velocity * deltaTime;
 	velocity -= gravity * deltaTime;
 
-	for (int i = 0; i < heightMap.size() - 1; i++) {
+	for (int i = std::max(0, firstChunkIndex - excessChunksNumber); i < std::min(visibleChunksNumber + firstChunkIndex + excessChunksNumber, lastChunkIndex) - 1; i++) {
 		if (std::get<0>(heightMap[i]) <= position.x && std::get<0>(heightMap[i + 1]) >= position.x) {
 			ax = std::get<0>(heightMap[i]);
 			ay = std::get<1>(heightMap[i]);
@@ -45,13 +51,13 @@ bool Projectile::Update(
 	glm::vec3 iPoint = glm::vec3(ax, ay, 0) * (1 - t) + glm::vec3(bx, by, 0) * t;
 
 	// Out of map
-	if (position.y < 0 || position.x < 0 || position.x > resolution.x) {
+	if (position.y < 0 || position.x < firstChunkPosX - excessChunksNumber || position.x > lastChunkPosX + excessChunksNumber) {
 		return false;
 	}
 
 	// Collision with terrain
 	if (position.y - iPoint.y < 0.5f) {
-		for (int i = 0; i < heightMap.size(); i++) {
+		for (int i = std::max(0, firstChunkIndex - excessChunksNumber); i < std::min(visibleChunksNumber + firstChunkIndex + excessChunksNumber, lastChunkIndex); i++) {
 			ax = std::get<0>(heightMap[i]);
 			ay = std::get<1>(heightMap[i]);
 			float dx = ax - position.x;

@@ -20,6 +20,10 @@ public:
 
 	bool Update(
 		std::vector<std::tuple<float, float>>& heightMap,
+		int visibleChunksNumber,
+		int firstChunkIndex,
+		int lastChunkIndex,
+		int excessChunksNumber,
 		Tank& tank1, Tank& tank2,
 		std::vector<Projectile>& projectiles,
 		std::vector<Projectile>& projectilesPool,

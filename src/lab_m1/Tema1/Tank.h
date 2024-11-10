@@ -12,7 +12,7 @@ public:
 	static constexpr float height = 30.0f;
 	static constexpr float width = 40.0f;
 	static constexpr float radius = 15.0f;
-	static constexpr float speed = 70.0f;
+	static constexpr float speed = 80.0f;
 	static constexpr float cannonLength = 30.0f;
 	static constexpr float cannonThickness = 4.0f;
 	static constexpr float colliderRadius = 20.0f;
@@ -25,17 +25,17 @@ public:
 
 	glm::vec3& GetPosition();
 
-	float GetSpeed();
+	float GetAngle();
 
 	int GetChunkIndex();
 
 	float GetCannonAngle();
 
-	float GetHeight();
-
 	int GetCurrentHealth();
 
 	int GetMaxHealth();
+
+	glm::vec3 GetIntersection();
 	
 	glm::vec3 GetCannonOffset();
 	
@@ -43,12 +43,14 @@ public:
 
 	void SetChunkIndex(int chunkIndex);
 
+	void SetIntersection(glm::vec3 intersection);
+
 	void SetCannonAngle(float cannonAngle);
 
 	void FireProjectile(float projectileSpeed, glm::vec3 gravity,
 		std::vector<Projectile>& projectiles, std::vector<Projectile>& projectilesPool);
 
-	void UpdateCannonAngle(bool left, float deltaTime);
+	bool UpdateCannonAngle(bool left, float deltaTime);
 
 	void TakeDamage(int damage);
 
@@ -56,6 +58,7 @@ public:
 
 private:
 	glm::vec3 position;
+	float angle;
 	int chunkIndex;
 	float cannonAngle;
 	float cannonAngleStep;
@@ -63,4 +66,5 @@ private:
 	int maxHealth;
 	int currentHealth;
 	bool isDead;
+	glm::vec3 intersection;
 };
