@@ -4,6 +4,7 @@
 #include "lab_m1/Tema1/Projectile.h"
 #include "lab_m1/Tema1/Tank.h"
 #include "lab_m1/Tema1/Enemy.h"
+#include "lab_m1/Tema1/Fireworks.h"
 #include <vector>
 #include <tuple>
 
@@ -12,12 +13,19 @@ namespace m1
     class Tema1 : public gfxc::SimpleScene
     {
     public:
-        Tema1();
+        static Tema1* GetInstance();
+        
         ~Tema1();
 
         void Init() override;
 
+        void UpdateTank(Tank& tank, float deltaTime);
+
     private:
+        static Tema1* instance;
+
+        Tema1();
+
         void FrameStart() override;
         void Update(float deltaTimeSeconds) override;
         void FrameEnd() override;
@@ -32,9 +40,7 @@ namespace m1
         void OnWindowResize(int width, int height) override;
 
         float TerrainFunc(float x);
-        void UpdateTank(Tank& tank, float deltaTime);
         glm::vec3 ProjectileFunc(glm::vec3 velocity, glm::vec3 gravity, glm::vec3 position, float t);
-        void FindIntersection(glm::vec3 velocity, glm::vec3 gravity, glm::vec3 position, float startTime, float endTime, float stepTime, float startX, float endX, float stepX);
 
     protected:
         glm::mat3 modelMatrix;
@@ -44,22 +50,36 @@ namespace m1
         float maxVisibleX, maxVisibleY, step;
         float maxMapX;
         int visibleChunksNumber;
-        int firstChunkIndex;
+        int firstChunkIndex1, firstChunkIndex2;
         int lastChunkIndex;
         int excessChunksNumber;
 
         std::vector<Projectile> projectiles;
         std::vector<Projectile> projectilesPool;
+
+        std::vector<Fireworks> fireworks;
+        float fireworkCD;
+        float fireworkTimer;
         
         glm::vec3 gravity;
         float maxHeightDistance;
         float transferValue;
 
         Tank tank1;
-        Enemy tank2;
+        Tank tank2;
+        std::vector<Enemy> enemies;
+        int enemiesNumber;
+        float playerSpeed, enemySpeed;
+        float playerShootCD, enemyShootCD;
+        float playerCannonAngleStep, enemyCannonAngleStep;
+        int playerMaxHealth, enemyMaxHealth;
+        float enemyDetectRange, enemyAttackRange;
 
         float healthBarHeight, healthBarWidth;
 
         glm::vec3 cameraPosition;
+        int cameraFocus;  // 1 = tank1 ; 2 = tank2
+
+        bool gameOver;
     };
 }   // namespace m1

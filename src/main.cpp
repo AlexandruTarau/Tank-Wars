@@ -44,7 +44,7 @@ int main(int argc, char **argv)
     (void)Engine::Init(wp);
 
     // Create a new 3D world and start running it
-    World *world = new m1::Tema1();
+    World* world = m1::Tema1::GetInstance(); //new m1::Tema1();
 
     world->Init();
     world->Run();

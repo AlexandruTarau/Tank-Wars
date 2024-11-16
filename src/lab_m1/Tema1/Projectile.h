@@ -6,6 +6,7 @@
 #include <tuple>
 
 class Tank;
+class Enemy;
 
 class Projectile {
 public:
@@ -25,6 +26,7 @@ public:
 		int lastChunkIndex,
 		int excessChunksNumber,
 		Tank& tank1, Tank& tank2,
+		std::vector<Enemy>& enemies,
 		std::vector<Projectile>& projectiles,
 		std::vector<Projectile>& projectilesPool,
 		glm::vec3 gravity,

@@ -12,12 +12,11 @@ public:
 	static constexpr float height = 30.0f;
 	static constexpr float width = 40.0f;
 	static constexpr float radius = 15.0f;
-	static constexpr float speed = 80.0f;
 	static constexpr float cannonLength = 30.0f;
 	static constexpr float cannonThickness = 4.0f;
 	static constexpr float colliderRadius = 20.0f;
 
-	Tank(glm::vec3 position, int chunkIndex, float cannonAngle, float cannonAngleStep, int maxHealth);
+	Tank(glm::vec3 position, int chunkIndex, float speed, float cannonAngleStep, int maxHealth, float shootCD);
 
 	Tank();
 
@@ -28,6 +27,8 @@ public:
 	float GetAngle();
 
 	int GetChunkIndex();
+
+	float GetSpeed();
 
 	float GetCannonAngle();
 
@@ -43,9 +44,13 @@ public:
 
 	void SetChunkIndex(int chunkIndex);
 
+	void SetSpeed(float speed);
+
 	void SetIntersection(glm::vec3 intersection);
 
 	void SetCannonAngle(float cannonAngle);
+
+	void SetCannonAngleStep(float step);
 
 	void FireProjectile(float projectileSpeed, glm::vec3 gravity,
 		std::vector<Projectile>& projectiles, std::vector<Projectile>& projectilesPool);
@@ -60,6 +65,7 @@ private:
 	glm::vec3 position;
 	float angle;
 	int chunkIndex;
+	float speed;
 	float cannonAngle;
 	float cannonAngleStep;
 	glm::vec3 cannonOffset;
@@ -67,4 +73,8 @@ private:
 	int currentHealth;
 	bool isDead;
 	glm::vec3 intersection;
+
+public:
+	float shootCD;
+	float shootTimer;
 };

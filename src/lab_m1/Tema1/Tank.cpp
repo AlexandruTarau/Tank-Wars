@@ -2,22 +2,26 @@
 #include "Projectile.h"
 #include <iostream>
 
-Tank::Tank(glm::vec3 position, int chunkIndex, float cannonAngle, float cannonAngleStep, int maxHealth)
+Tank::Tank(glm::vec3 position, int chunkIndex, float speed, float cannonAngleStep, int maxHealth, float shootCD)
 {
 	this->position = position;
 	this->chunkIndex = chunkIndex;
-    this->cannonAngle = cannonAngle;
+    this->speed = speed;
+    this->cannonAngle = 90.f;
     this->cannonOffset = glm::vec3(0.f, 3.f * height / 5.f, 0.f);
     this->cannonAngleStep = cannonAngleStep;
     this->maxHealth = maxHealth;
     this->currentHealth = maxHealth;
+    this->shootCD = shootCD;
     this->isDead = false;
     intersection = glm::vec3(0, 0, 0);
+    shootTimer = 0.f;
 }
 
 Tank::Tank()
 {
     intersection = glm::vec3(0, 0, 0);
+    shootTimer = 0.f;
 }
 
 std::tuple<glm::mat3, glm::mat3> Tank::BuildTank(std::vector<std::tuple<float, float>> heightMap)
@@ -33,7 +37,15 @@ std::tuple<glm::mat3, glm::mat3> Tank::BuildTank(std::vector<std::tuple<float, f
     std::tuple<glm::mat3, glm::mat3> tank;
 
     position.y = ay + t * (by - ay);
-    angle = groundAngle * 180.f / glm::pi<float>();
+
+    if (position.y < 0.f) {
+        position.y = 0.f;
+        angle = 0.f;
+        groundAngle = 0.f;
+    }
+    else {
+        angle = groundAngle * 180.f / glm::pi<float>();
+    }
 
     // Tank base
     glm::mat3 modelMatrix = glm::mat3(1);
@@ -134,6 +146,11 @@ int Tank::GetChunkIndex()
     return chunkIndex;
 }
 
+float Tank::GetSpeed()
+{
+    return speed;
+}
+
 float Tank::GetCannonAngle()
 {
     return cannonAngle;
@@ -164,9 +181,19 @@ void Tank::SetCannonAngle(float cannonAngle)
     this->cannonAngle = cannonAngle;
 }
 
+void Tank::SetCannonAngleStep(float step)
+{
+    cannonAngleStep = step;
+}
+
 void Tank::SetChunkIndex(int chunkIndex)
 {
     this->chunkIndex = chunkIndex;
+}
+
+void Tank::SetSpeed(float speed)
+{
+    this->speed = speed;
 }
 
 void Tank::SetPosition(glm::vec3 position)

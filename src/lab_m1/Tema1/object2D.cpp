@@ -133,11 +133,11 @@ Mesh* object2D::CreateCircle(
     return circle;
 }
 
-Mesh* object2D::CreateLine(const char* name)
+Mesh* object2D::CreateLine(const std::string& name, glm::vec3 color)
 {
     std::vector<VertexFormat> vertices = {
-        VertexFormat(glm::vec3(0.0f, 0.0f, 0.0f)),
-        VertexFormat(glm::vec3(1.0f, 0.0f, 0.0f))
+        VertexFormat(glm::vec3(0.0f, 0.0f, 0.0f), color),
+        VertexFormat(glm::vec3(1.0f, 0.0f, 0.0f), color)
     };
 
     Mesh* line = new Mesh(name);

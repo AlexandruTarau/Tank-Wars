@@ -16,30 +16,61 @@ using namespace m1;
  *  and the order in which they are called, see `world.cpp`.
  */
 
+Tema1* Tema1::instance = nullptr;
+
 Tema1::Tema1()
 {
     maxVisibleX = 28.f;
     maxVisibleY = 12.f;
-    step = 0.05f;
+    step = 0.1f;
     maxMapX = maxVisibleX * 4;
     visibleChunksNumber = maxVisibleX / step;
-    firstChunkIndex = 0;
+    firstChunkIndex1 = 0;
+    firstChunkIndex2 = 0;
     lastChunkIndex = maxMapX / step - 1;
     excessChunksNumber = 40;
 
     gravity = glm::vec3(0.f, 1000.f, 0.f);
-    maxHeightDistance = 3.f;
+    maxHeightDistance = 1.f;
     transferValue = 50.f;
 
     healthBarHeight = 20.f;
     healthBarWidth = 60.f;
 
     cameraPosition = glm::vec3(0, 0, 50);
+    cameraFocus = 1;
+
+    playerSpeed = 100.f;
+    enemySpeed = 50.f;
+    playerShootCD = 0.5f;
+    enemyShootCD = 1.f;
+    playerCannonAngleStep = 60.f;
+    enemyCannonAngleStep = 60.f;
+    playerMaxHealth = 100;
+    enemyMaxHealth = 100;
+    enemyAttackRange = 300.f;
+    enemyDetectRange = 500.f;
+    enemiesNumber = 5;
+
+    fireworkTimer = 0.f;
+    fireworkCD = 0.f;
+    gameOver = false;
+}
+
+Tema1* Tema1::GetInstance() {
+    if (instance == nullptr) {
+        instance = new Tema1();
+    }
+    return instance;
 }
 
 
 Tema1::~Tema1()
 {
+    if (instance) {
+        delete instance;
+        instance = nullptr;
+    }
 }
 
 
@@ -68,6 +99,9 @@ void Tema1::UpdateTank(Tank& tank, float deltaTime)
         }
         else if (&tank == &tank2) {
             name = "tank2";
+        }
+        else {
+            name = "enemy";
         }
         RenderMesh2D(meshes[name], shaders["VertexColor"], std::get<0>(models));
         RenderMesh2D(meshes["cannon"], shaders["VertexColor"], std::get<1>(models));
@@ -165,6 +199,8 @@ void Tema1::Init()
     camera->Update();
     GetCameraInput()->SetActive(false);
 
+    srand(time(0));
+
     // Initiate Terrain
     float pointScaleX = (float)resolution.x / maxVisibleX;
     float pointScaleY = (float)resolution.y / maxVisibleY;
@@ -175,32 +211,49 @@ void Tema1::Init()
     // Initiate Tanks
     int chunkIndex = (int)(1.f / step);
     float posX = std::get<0>(heightMap[chunkIndex]);
-    tank1 = Tank(glm::vec3(posX, 0.f, 0.f), chunkIndex, 90.f, 60.f, 100);
+    tank1 = Tank(glm::vec3(posX, 0.f, 0.f), chunkIndex, playerSpeed, playerCannonAngleStep, playerMaxHealth, playerShootCD);
 
-    chunkIndex = (int)((maxVisibleX - 1) / step);
+    chunkIndex = (int)(2.f / step);
     posX = std::get<0>(heightMap[chunkIndex]);
-    tank2 = Enemy(glm::vec3(posX, 0.f, 0.f), chunkIndex, 90.f, 60.f, 100, 300, 1.f);
+    tank2 = Tank(glm::vec3(posX, 0.f, 0.f), chunkIndex, playerSpeed, playerCannonAngleStep, playerMaxHealth, playerShootCD);
 
+    // Initiate Enemies
+    for (int i = 1; i <= enemiesNumber; i++) {
+        chunkIndex = (int)((maxMapX - excessChunksNumber * step) * i / (enemiesNumber * step));
+        posX = std::get<0>(heightMap[chunkIndex]);
+        enemies.push_back(Enemy(glm::vec3(posX, 0.f, 0.f), chunkIndex, enemySpeed, enemyCannonAngleStep, enemyMaxHealth, enemyShootCD, enemyAttackRange, enemyDetectRange));
+        enemies[i - 1].SetStatus(true);
+    }
+
+    // Create Meshes
     glm::vec3 corner = glm::vec3(0, 0, 0);
     float squareSide = 1;
     
-    Mesh* terrain = object2D::CreateSquare("terrain", corner, squareSide, glm::vec3(0.059, 0.529, 0.075), false);
+    Mesh* terrain = object2D::CreateSquare("terrain", corner, squareSide, glm::vec3(0.059, 0.529, 0.075), true);
     Mesh* cannon = object2D::CreateSquare("cannon", corner, squareSide, glm::vec3(0.11, 0.122, 0.11), true);
     Mesh* tank1 = object2D::CreateTank("tank1", corner, Tank::width, Tank::height, Tank::radius, glm::vec3(0.31, 0.188, 0.039), glm::vec3(0.871, 0.208, 0.075), true);
     Mesh* tank2 = object2D::CreateTank("tank2", corner, Tank::width, Tank::height, Tank::radius, glm::vec3(0.31, 0.188, 0.039), glm::vec3(0.071, 0.184, 0.922), true);
+    Mesh* enemy = object2D::CreateTank("enemy", corner, Tank::width, Tank::height, Tank::radius, glm::vec3(0.31, 0.188, 0.039), glm::vec3(0.553, 0.722, 0.184), true);
     Mesh* circle = object2D::CreateCircle("circle", corner, 1, glm::vec3(0, 0, 0), true);
     Mesh* healthBarBorder = object2D::CreateSquare("barBorder", corner, squareSide, glm::vec3(1, 1, 1), false);
     Mesh* healthBar = object2D::CreateSquare("barFill", corner, squareSide, glm::vec3(1, 1, 1), true);
-    Mesh* line = object2D::CreateLine("line");
+    Mesh* line = object2D::CreateLine("line", glm::vec3(1, 1, 1));
+    Mesh* lineRed = object2D::CreateLine("lineRed", glm::vec3(1, 0, 0));
+    Mesh* lineBlue = object2D::CreateLine("lineBlue", glm::vec3(0, 0, 1));
+    Mesh* lineGreen = object2D::CreateLine("lineGreen", glm::vec3(0, 1, 0));
     
     AddMeshToList(terrain);
     AddMeshToList(cannon);
     AddMeshToList(tank1);
     AddMeshToList(tank2);
+    AddMeshToList(enemy);
     AddMeshToList(circle);
     AddMeshToList(healthBarBorder);
     AddMeshToList(healthBar);
     AddMeshToList(line);
+    AddMeshToList(lineRed);
+    AddMeshToList(lineBlue);
+    AddMeshToList(lineGreen);
 }
 
 
@@ -219,6 +272,77 @@ void Tema1::FrameStart()
 void Tema1::Update(float deltaTimeSeconds)
 {
     float ax = 0.f, bx = 0.f, ay = 0.f, by = 0.f, t = 0.f;
+    int firstChunkIndex;
+
+    tank1.shootTimer += deltaTimeSeconds;
+    tank2.shootTimer += deltaTimeSeconds;
+
+    if (tank1.IsDead()) {
+        cameraFocus = 2;
+    }
+    else if (tank2.IsDead()) {
+        cameraFocus = 1;
+    }
+
+    if (cameraFocus == 1) {
+        firstChunkIndex = firstChunkIndex1;
+    }
+    else {
+        firstChunkIndex = firstChunkIndex2;
+    }
+
+    // End game fireworks
+    if (gameOver) {
+        fireworkTimer += deltaTimeSeconds;
+
+        if (fireworkTimer >= fireworkCD) {
+            fireworkTimer = 0.f;
+            fireworkCD = 0.1f + rand() % 3 / 10.f;
+
+            glm::ivec2 resolution = window->GetResolution();
+            int maxX = resolution.x * 3 / 4;
+            int minX = resolution.x / 4;
+            float posX = std::get<0>(heightMap[firstChunkIndex]) + minX + rand() % (maxX - minX + 1);
+            int minY = resolution.y / 2;
+            int maxY = resolution.y * 3 / 4;
+            float posY = minY + rand() % (maxY - minY + 1);
+            float propagationFactor = 1.f + rand() % 40 / 10.f;
+            int propagationNumber = 3 + rand() % 3;
+            float propagationCD = 0.1f + rand() % 2 / 20.f;
+            float scale = 4.f + rand() % 70 / 10.f;
+            int raysNumber = 20 + rand() % 30;
+            fireworks.push_back(Fireworks(glm::vec3(posX, posY, 0.f), propagationFactor, propagationNumber, propagationCD, scale, raysNumber));
+        }
+
+        for (auto it = fireworks.begin(); it != fireworks.end(); ) {
+            std::vector<glm::mat3> res = it->Fire(deltaTimeSeconds);
+            if (it->IsDead()) {
+                it = fireworks.erase(it);
+            }
+            else {
+                for (int i = 0; i < res.size(); i++) {
+                    int color = rand() % 3;
+                    string name = "line";
+                    switch (color) {
+                    case 0: {
+                        name = "lineRed";
+                        break;
+                    }
+                    case 1: {
+                        name = "lineBlue";
+                        break;
+                    }
+                    case 2: {
+                        name = "lineGreen";
+                        break;
+                    }
+                    }
+                    RenderMesh2D(meshes[name], shaders["VertexColor"], res[i]);
+                }
+                ++it;
+            }
+        }
+    }
 
     // Land slide
     for (int i = max(0, firstChunkIndex - excessChunksNumber); i < min(visibleChunksNumber + firstChunkIndex + excessChunksNumber, lastChunkIndex) - 1; i++) {
@@ -230,7 +354,7 @@ void Tema1::Update(float deltaTimeSeconds)
         float heightDif = abs(ay - by);
 
         if (heightDif > maxHeightDistance) {
-            float heightTransfer = std::min(transferValue, heightDif) * deltaTimeSeconds;
+            float heightTransfer = std::min(transferValue, heightDif * 3.f) * deltaTimeSeconds;
 
             if (ay < by) {
                 ay += heightTransfer;
@@ -246,7 +370,7 @@ void Tema1::Update(float deltaTimeSeconds)
     }
 
     // Building the map
-    for (int i = max(0, firstChunkIndex - excessChunksNumber); i < min(visibleChunksNumber + firstChunkIndex + excessChunksNumber, lastChunkIndex) - 1; i++) {
+    for (int i = 0; i < lastChunkIndex - 1; i++) {
         modelMatrix = glm::mat3(1);
         ax = std::get<0>(heightMap[i]);
         bx = std::get<0>(heightMap[i + 1]);
@@ -260,10 +384,31 @@ void Tema1::Update(float deltaTimeSeconds)
         RenderMesh2D(meshes["terrain"], shaders["VertexColor"], modelMatrix);
     }
 
-    tank2.UpdateAI(tank1.GetPosition(), heightMap, visibleChunksNumber, firstChunkIndex, gravity, projectiles, projectilesPool, deltaTimeSeconds);
-
+    // Updating player tanks
     UpdateTank(tank1, deltaTimeSeconds);
     UpdateTank(tank2, deltaTimeSeconds);
+
+    // Updating enemy tanks
+    if (!gameOver) {
+        vector<glm::vec3> tanksPositions = { tank1.GetPosition(), tank2.GetPosition() };
+        bool allEnemiesDefeated = true;
+
+        for (int i = 0; i < enemiesNumber; i++) {
+            float posX = enemies[i].GetPosition().x;
+            if (posX >= std::get<0>(heightMap[firstChunkIndex]) &&
+                posX <= std::get<0>(heightMap[firstChunkIndex + visibleChunksNumber])) {
+                enemies[i].UpdateAI(tanksPositions, heightMap, visibleChunksNumber, firstChunkIndex, lastChunkIndex, excessChunksNumber, gravity, projectiles, projectilesPool, deltaTimeSeconds);
+                UpdateTank(enemies[i], deltaTimeSeconds);
+            }
+            if (!enemies[i].IsDead()) {
+                allEnemiesDefeated = false;
+            }
+        }
+
+        if (allEnemiesDefeated) {
+            gameOver = true;
+        }
+    }
 
     // Projectiles
     for (auto it = projectiles.begin(); it != projectiles.end(); ) {
@@ -272,7 +417,7 @@ void Tema1::Update(float deltaTimeSeconds)
         RenderMesh2D(meshes["circle"], shaders["VertexColor"], it->BuildProjectile(heightMap));
 
         // Projectile movement
-        if (it->Update(heightMap, visibleChunksNumber, firstChunkIndex, lastChunkIndex, excessChunksNumber, tank1, tank2, projectiles, projectilesPool, gravity, window->GetResolution(), deltaTimeSeconds)) {
+        if (it->Update(heightMap, visibleChunksNumber, firstChunkIndex, lastChunkIndex, excessChunksNumber, tank1, tank2, enemies, projectiles, projectilesPool, gravity, window->GetResolution(), deltaTimeSeconds)) {
 
             // Remove projectile and add it to the pool
             projectilesPool.push_back(*it);
@@ -282,6 +427,15 @@ void Tema1::Update(float deltaTimeSeconds)
             ++it;
         }
     }
+
+    // Camera Position
+    glm::vec3 targetPos = glm::vec3(std::get<0>(heightMap[firstChunkIndex]), 0, 50);
+    glm::vec3 difference = targetPos - cameraPosition;
+
+    // Damping camera movement
+    cameraPosition += difference * 0.05f;
+
+    GetSceneCamera()->SetPosition(cameraPosition);
 }
 
 
@@ -302,57 +456,53 @@ void Tema1::OnInputUpdate(float deltaTime, int mods)
         glm::vec3 position = tank1.GetPosition();
         glm::ivec2 resolution = window->GetResolution();
         int currentChunk = tank1.GetChunkIndex();
-        float newPosX = position.x + Tank::speed * deltaTime;
+        float newPosX = position.x + tank1.GetSpeed() * deltaTime;
         int i = currentChunk + 1;
-        float firstChunkPosX = std::get<0>(heightMap[firstChunkIndex]);
+        float firstChunkPosX = std::get<0>(heightMap[firstChunkIndex1]);
         float lastChunkPosX = std::get<0>(heightMap[lastChunkIndex]);
 
-        if (newPosX > lastChunkPosX - excessChunksNumber) {
-            return;
-        }
+        if (newPosX <= lastChunkPosX - excessChunksNumber) {
+            tank1.SetPosition(glm::vec3(newPosX, position.y, position.z));
 
-        tank1.SetPosition(glm::vec3(newPosX, position.y, position.z));
-
-        // TODO: try bsearch later
-        // Update the chunk the tank is on
-        for (; i < visibleChunksNumber + firstChunkIndex; i++) {
-            if (std::get<0>(heightMap[i]) > newPosX) {
-                tank1.SetChunkIndex(i - 1);
-                break;
+            // Update the chunk the tank is on
+            for (; i < visibleChunksNumber + firstChunkIndex1; i++) {
+                if (std::get<0>(heightMap[i]) > newPosX) {
+                    tank1.SetChunkIndex(i - 1);
+                    break;
+                }
             }
-        }
 
-        if (newPosX > resolution.x / 2.f + firstChunkPosX && newPosX < lastChunkPosX - resolution.x / 2.f) {
-            int chunkMoveNumber = i - 1 - currentChunk;
+            if (newPosX > resolution.x / 2.f + firstChunkPosX && newPosX < lastChunkPosX - resolution.x / 2.f - excessChunksNumber) {
+                int chunkMoveNumber = i - 1 - currentChunk;
 
-            firstChunkIndex += chunkMoveNumber;
-            firstChunkPosX = std::get<0>(heightMap[firstChunkIndex]);
-
-            glm::vec3 targetPos = glm::vec3(firstChunkPosX, 0, 50);
-            glm::vec3 difference = targetPos - cameraPosition;
-
-            // Damping camera movement
-            cameraPosition += difference * 0.04f;
-
-            GetSceneCamera()->SetPosition(cameraPosition);
+                firstChunkIndex1 += chunkMoveNumber;
+            }
         }
     }
     if (window->KeyHold(GLFW_KEY_A)) {
         glm::vec3 position = tank1.GetPosition();
-        float newPosX = position.x - Tank::speed * deltaTime;
+        glm::ivec2 resolution = window->GetResolution();
+        int currentChunk = tank1.GetChunkIndex();
+        float newPosX = position.x - tank1.GetSpeed() * deltaTime;
+        int i = currentChunk;
+        float firstChunkPosX = std::get<0>(heightMap[firstChunkIndex1]);
+        float lastChunkPosX = std::get<0>(heightMap[lastChunkIndex]);
 
-        if (newPosX < 0) {
-            return;
-        }
+        if (newPosX >= 0) {
+            tank1.SetPosition(glm::vec3(newPosX, position.y, position.z));
 
-        tank1.SetPosition(glm::vec3(newPosX, position.y, position.z));
-        
-        // TODO: try bsearch later
-        // Update the chunk the tank is on
-        for (int i = tank1.GetChunkIndex(); i >= firstChunkIndex; i--) {
-            if (std::get<0>(heightMap[i]) <= newPosX) {
-                tank1.SetChunkIndex(i);
-                break;
+            // Update the chunk the tank is on
+            for (i = currentChunk; i >= firstChunkIndex1; i--) {
+                if (std::get<0>(heightMap[i]) <= newPosX) {
+                    tank1.SetChunkIndex(i);
+                    break;
+                }
+            }
+
+            if (newPosX < resolution.x / 2.f + firstChunkPosX && newPosX > resolution.x / 2.f) {
+                int chunkMoveNumber = i - currentChunk;
+
+                firstChunkIndex1 += chunkMoveNumber;
             }
         }
     }
@@ -364,51 +514,64 @@ void Tema1::OnInputUpdate(float deltaTime, int mods)
     }
 
     // Tank2
-    if (!tank2.IsActive()) {
-        if (window->KeyHold(GLFW_KEY_RIGHT)) {
-            glm::vec3 position = tank2.GetPosition();
-            float newPosX = position.x + Tank::speed * deltaTime;
+    if (window->KeyHold(GLFW_KEY_RIGHT)) {
+        glm::vec3 position = tank2.GetPosition();
+        glm::ivec2 resolution = window->GetResolution();
+        int currentChunk = tank2.GetChunkIndex();
+        float newPosX = position.x + tank2.GetSpeed() * deltaTime;
+        int i = currentChunk + 1;
+        float firstChunkPosX = std::get<0>(heightMap[firstChunkIndex2]);
+        float lastChunkPosX = std::get<0>(heightMap[lastChunkIndex]);
 
-            if (newPosX > window->GetResolution().x) {
-                return;
-            }
-
+        if (newPosX <= lastChunkPosX - excessChunksNumber) {
             tank2.SetPosition(glm::vec3(newPosX, position.y, position.z));
 
-            // TODO: try bsearch later
             // Update the chunk the tank is on
-            for (int i = tank2.GetChunkIndex() + 1; i < visibleChunksNumber + firstChunkIndex; i++) {
+            for (; i < visibleChunksNumber + firstChunkIndex2; i++) {
                 if (std::get<0>(heightMap[i]) > newPosX) {
                     tank2.SetChunkIndex(i - 1);
                     break;
                 }
             }
-        }
-        if (window->KeyHold(GLFW_KEY_LEFT)) {
-            glm::vec3 position = tank2.GetPosition();
-            float newPosX = position.x - Tank::speed * deltaTime;
 
-            if (newPosX < 0) {
-                newPosX = 0;
+            if (newPosX > resolution.x / 2.f + firstChunkPosX && newPosX < lastChunkPosX - resolution.x / 2.f - excessChunksNumber) {
+                int chunkMoveNumber = i - 1 - currentChunk;
+                firstChunkIndex2 += chunkMoveNumber;
             }
+        }
+    }
+    if (window->KeyHold(GLFW_KEY_LEFT)) {
+        glm::vec3 position = tank2.GetPosition();
+        glm::ivec2 resolution = window->GetResolution();
+        int currentChunk = tank2.GetChunkIndex();
+        float newPosX = position.x - tank2.GetSpeed() * deltaTime;
+        int i = currentChunk;
+        float firstChunkPosX = std::get<0>(heightMap[firstChunkIndex2]);
+        float lastChunkPosX = std::get<0>(heightMap[lastChunkIndex]);
 
+        if (newPosX >= 0) {
             tank2.SetPosition(glm::vec3(newPosX, position.y, position.z));
 
-            // TODO: try bsearch later
             // Update the chunk the tank is on
-            for (int i = tank2.GetChunkIndex(); i >= firstChunkIndex; i--) {
+            for (; i >= firstChunkIndex2; i--) {
                 if (std::get<0>(heightMap[i]) <= newPosX) {
                     tank2.SetChunkIndex(i);
                     break;
                 }
             }
+
+            if (newPosX < resolution.x / 2.f + firstChunkPosX && newPosX > resolution.x / 2.f) {
+                int chunkMoveNumber = i - currentChunk;
+
+                firstChunkIndex2 += chunkMoveNumber;
+            }
         }
-        if (window->KeyHold(GLFW_KEY_UP)) {
-            tank2.UpdateCannonAngle(false, deltaTime);
-        }
-        if (window->KeyHold(GLFW_KEY_DOWN)) {
-            tank2.UpdateCannonAngle(true, deltaTime);
-        }
+    }
+    if (window->KeyHold(GLFW_KEY_UP)) {
+        tank2.UpdateCannonAngle(false, deltaTime);
+    }
+    if (window->KeyHold(GLFW_KEY_DOWN)) {
+        tank2.UpdateCannonAngle(true, deltaTime);
     }
 }
 
@@ -416,14 +579,28 @@ void Tema1::OnInputUpdate(float deltaTime, int mods)
 void Tema1::OnKeyPress(int key, int mods)
 {
     // Add key press event
-    if (key == GLFW_KEY_SPACE) {
-        tank1.FireProjectile(Projectile::projectileSpeed, gravity, projectiles, projectilesPool);
+    if (key == GLFW_KEY_SPACE && !tank1.IsDead()) {
+        if (tank1.shootTimer >= tank1.shootCD) {
+            tank1.shootTimer = 0.f;
+            tank1.FireProjectile(Projectile::projectileSpeed, gravity, projectiles, projectilesPool);
+        }
     }
-    if (key == GLFW_KEY_ENTER && !tank2.IsActive()) {
-        tank2.FireProjectile(Projectile::projectileSpeed, gravity, projectiles, projectilesPool);
+    if (key == GLFW_KEY_ENTER && !tank2.IsDead()) {
+        if (tank2.shootTimer >= tank2.shootCD) {
+            tank2.shootTimer = 0.f;
+            tank2.FireProjectile(Projectile::projectileSpeed, gravity, projectiles, projectilesPool);
+        }
     }
-    if (key == GLFW_KEY_I) {
-        tank2.SetStatus(!tank2.IsActive());
+    if (key == GLFW_KEY_F) {
+        if (cameraFocus == 1) {
+            cameraFocus = 2;
+        }
+        else {
+            cameraFocus = 1;
+        }
+    }
+    if (key == GLFW_KEY_P) {
+        fireworks.push_back(Fireworks(glm::vec3(200.f, 200.f, 0.f), 6.f, 4.f, 0.1f, 10.f, 30));
     }
 }
 

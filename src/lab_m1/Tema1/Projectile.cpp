@@ -1,5 +1,6 @@
 #include "Projectile.h"
 #include "Tank.h"
+#include "Enemy.h"
 #include <iostream>
 
 Projectile::Projectile(glm::vec3 position, glm::vec3 velocity)
@@ -25,6 +26,7 @@ bool Projectile::Update(
 	int excessChunksNumber,
 	Tank& tank1,
 	Tank& tank2,
+	std::vector<Enemy>& enemies,
 	std::vector<Projectile>& projectiles,
 	std::vector<Projectile>& projectilesPool,
 	glm::vec3 gravity,
@@ -56,7 +58,7 @@ bool Projectile::Update(
 	}
 
 	// Collision with terrain
-	if (position.y - iPoint.y < 0.5f) {
+	if (position.y - iPoint.y < 1.f) {
 		for (int i = std::max(0, firstChunkIndex - excessChunksNumber); i < std::min(visibleChunksNumber + firstChunkIndex + excessChunksNumber, lastChunkIndex); i++) {
 			ax = std::get<0>(heightMap[i]);
 			ay = std::get<1>(heightMap[i]);
@@ -92,6 +94,18 @@ bool Projectile::Update(
 		tank2.TakeDamage(damage);
 
 		return true;
+	}
+
+	for (int i = 0; i < enemies.size(); i++) {
+		glm::vec3 enemyPos = enemies[i].GetPosition();
+		float distance = sqrt((position.x - enemyPos.x) * (position.x - enemyPos.x) +
+			(position.y - enemyPos.y) * (position.y - enemyPos.y));
+
+		if (!enemies[i].IsDead() && distance < projectileRadius + Tank::colliderRadius) {
+			enemies[i].TakeDamage(damage);
+
+			return true;
+		}
 	}
 
 	return false;
