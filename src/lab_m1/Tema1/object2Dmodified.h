@@ -6,7 +6,7 @@
 #include "utils/glm_utils.h"
 
 
-namespace object2D
+namespace object2Dmodified
 {
 
     // Create square with given bottom left corner, length and color

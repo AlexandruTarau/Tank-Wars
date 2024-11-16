@@ -6,7 +6,7 @@
 #include <numbers>
 
 #include "lab_m1/Tema1/transform2D.h"
-#include "lab_m1/Tema1/object2D.h"
+#include "lab_m1/Tema1/object2Dmodified.h"
 
 using namespace std;
 using namespace m1;
@@ -229,18 +229,18 @@ void Tema1::Init()
     glm::vec3 corner = glm::vec3(0, 0, 0);
     float squareSide = 1;
     
-    Mesh* terrain = object2D::CreateSquare("terrain", corner, squareSide, glm::vec3(0.059, 0.529, 0.075), true);
-    Mesh* cannon = object2D::CreateSquare("cannon", corner, squareSide, glm::vec3(0.11, 0.122, 0.11), true);
-    Mesh* tank1 = object2D::CreateTank("tank1", corner, Tank::width, Tank::height, Tank::radius, glm::vec3(0.31, 0.188, 0.039), glm::vec3(0.871, 0.208, 0.075), true);
-    Mesh* tank2 = object2D::CreateTank("tank2", corner, Tank::width, Tank::height, Tank::radius, glm::vec3(0.31, 0.188, 0.039), glm::vec3(0.071, 0.184, 0.922), true);
-    Mesh* enemy = object2D::CreateTank("enemy", corner, Tank::width, Tank::height, Tank::radius, glm::vec3(0.31, 0.188, 0.039), glm::vec3(0.553, 0.722, 0.184), true);
-    Mesh* circle = object2D::CreateCircle("circle", corner, 1, glm::vec3(0, 0, 0), true);
-    Mesh* healthBarBorder = object2D::CreateSquare("barBorder", corner, squareSide, glm::vec3(1, 1, 1), false);
-    Mesh* healthBar = object2D::CreateSquare("barFill", corner, squareSide, glm::vec3(1, 1, 1), true);
-    Mesh* line = object2D::CreateLine("line", glm::vec3(1, 1, 1));
-    Mesh* lineRed = object2D::CreateLine("lineRed", glm::vec3(1, 0, 0));
-    Mesh* lineBlue = object2D::CreateLine("lineBlue", glm::vec3(0, 0, 1));
-    Mesh* lineGreen = object2D::CreateLine("lineGreen", glm::vec3(0, 1, 0));
+    Mesh* terrain = object2Dmodified::CreateSquare("terrain", corner, squareSide, glm::vec3(0.059, 0.529, 0.075), true);
+    Mesh* cannon = object2Dmodified::CreateSquare("cannon", corner, squareSide, glm::vec3(0.11, 0.122, 0.11), true);
+    Mesh* tank1 = object2Dmodified::CreateTank("tank1", corner, Tank::width, Tank::height, Tank::radius, glm::vec3(0.31, 0.188, 0.039), glm::vec3(0.871, 0.208, 0.075), true);
+    Mesh* tank2 = object2Dmodified::CreateTank("tank2", corner, Tank::width, Tank::height, Tank::radius, glm::vec3(0.31, 0.188, 0.039), glm::vec3(0.071, 0.184, 0.922), true);
+    Mesh* enemy = object2Dmodified::CreateTank("enemy", corner, Tank::width, Tank::height, Tank::radius, glm::vec3(0.31, 0.188, 0.039), glm::vec3(0.553, 0.722, 0.184), true);
+    Mesh* circle = object2Dmodified::CreateCircle("circle", corner, 1, glm::vec3(0, 0, 0), true);
+    Mesh* healthBarBorder = object2Dmodified::CreateSquare("barBorder", corner, squareSide, glm::vec3(1, 1, 1), false);
+    Mesh* healthBar = object2Dmodified::CreateSquare("barFill", corner, squareSide, glm::vec3(1, 1, 1), true);
+    Mesh* line = object2Dmodified::CreateLine("line", glm::vec3(1, 1, 1));
+    Mesh* lineRed = object2Dmodified::CreateLine("lineRed", glm::vec3(1, 0, 0));
+    Mesh* lineBlue = object2Dmodified::CreateLine("lineBlue", glm::vec3(0, 0, 1));
+    Mesh* lineGreen = object2Dmodified::CreateLine("lineGreen", glm::vec3(0, 1, 0));
     
     AddMeshToList(terrain);
     AddMeshToList(cannon);

@@ -1,11 +1,11 @@
-#include "object2D.h"
+#include "object2Dmodified.h"
 
 #include <vector>
 
 #include "core/engine.h"
 #include "utils/gl_utils.h"
 
-Mesh* object2D::CreateSquare(
+Mesh* object2Dmodified::CreateSquare(
     const std::string& name,
     glm::vec3 leftTopCorner,
     float length,
@@ -37,7 +37,7 @@ Mesh* object2D::CreateSquare(
     return square;
 }
 
-Mesh* object2D::CreateTank(
+Mesh* object2Dmodified::CreateTank(
     const std::string& name,
     glm::vec3 bottomMiddleCenter,
     float length,
@@ -96,7 +96,7 @@ Mesh* object2D::CreateTank(
     return tank;
 }
 
-Mesh* object2D::CreateCircle(
+Mesh* object2Dmodified::CreateCircle(
     const std::string& name,
     glm::vec3 center,
     float radius,
@@ -133,7 +133,7 @@ Mesh* object2D::CreateCircle(
     return circle;
 }
 
-Mesh* object2D::CreateLine(const std::string& name, glm::vec3 color)
+Mesh* object2Dmodified::CreateLine(const std::string& name, glm::vec3 color)
 {
     std::vector<VertexFormat> vertices = {
         VertexFormat(glm::vec3(0.0f, 0.0f, 0.0f), color),
