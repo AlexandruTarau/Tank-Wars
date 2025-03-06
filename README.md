@@ -1,3 +1,14 @@
+# TANK WARS
+
+## Description
+This is an implementation of the game "Tank Wars" using the GFX Framework over OpenGL.
+
+## Code location
+This game is only a part of the entire project. The relevant code resides at `src/lab_m1/Tema1/`.
+
+## How to run
+Run the `src/main.cpp` file.
+
 # GFX Framework
 
 ## :sparkles: Introduction
