@@ -4,24 +4,24 @@
 This is a variation of the game "Tank Wars" implemented using the GFX Framework over OpenGL.
 
 ## Controls & Mechanics
-The game has 2 players (**red** & **blue**) which can be controlled using the keyboard as follows:
-- **Red**
-  - `A` -> Go Left
-  - `D` -> Go Right
-  - `W` -> Move Turret Left
-  - `S` -> Move Turret Right
-  - `Space` -> Fire Projectile
-- **Blue**
-  - `Left Arrow` -> Go Left
-  - `Right Arrow` -> Go Right
-  - `Up Arrow` -> Move Turret Left
-  - `Down Arrow` -> Move Turret Right
-  - `Enter` -> Fire Projectile
+- The game has 2 players (**red** & **blue**) which can be controlled using the keyboard as follows:
+  - **Red**
+    - `A` -> Go Left
+    - `D` -> Go Right
+    - `W` -> Move Turret Left
+    - `S` -> Move Turret Right
+    - `Space` -> Fire Projectile
+  - **Blue**
+    - `Left Arrow` -> Go Left
+    - `Right Arrow` -> Go Right
+    - `Up Arrow` -> Move Turret Left
+    - `Down Arrow` -> Move Turret Right
+    - `Enter` -> Fire Projectile
 
-Toggle player focus using `F` key.
-**Friendly Fire** is on.
-Implemented **land sliding**, **projectile trajectory**, **health bars**, **bots (enemies)**.
-**Goal**: defeat all enemies.
+- Toggle player focus using `F` key.
+- **Friendly Fire** is on.
+- Implemented **land sliding**, **projectile trajectory**, **health bars**, **bots (enemies)**.
+- **Goal**: defeat all enemies.
 
 ## Code location
 This game is only a part of the entire project. The relevant code resides at `src/lab_m1/Tema1/`.
